@@ -1141,9 +1141,21 @@ class Grid:
         """
 
         ax = self.axes[axis]
-        diff = ax.diff(da, **kwargs)
-        dx = self.get_metric(diff, (axis,))
-        return diff / dx
+
+        # find all other axes
+        # dropping 'time' in a rather crude way...
+        other_axes = [x for x in self.axes.keys() 
+                        if x != axis and 'time' not in self.axes[x].coords.values() != 'time'] 
+
+        # use other elements to form "area" for derivative numerator
+        area = self.get_metric(da,other_axes)
+
+        diff = ax.diff(da*area, **kwargs)
+
+        # denominator of finite volume derivative is volume
+        volume = self.get_metric( diff, other_axes+[axis] )
+
+        return diff / volume
 
     @docstrings.dedent
     def integrate(self, da, axis, **kwargs):
